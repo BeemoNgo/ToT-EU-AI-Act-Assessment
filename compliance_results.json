@@ -1,0 +1,70 @@
+{
+  "SimpleBot": {
+    "Risk Management Plan": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy and Security'. The findings for sub-points were: Does the provider have a documented privacy and security policy for this AI, identifying and mitigating potential risks?: Yes; Is the privacy and security policy continuous and updated throughout the AI system's lifecycle?: Yes; Has the system been tested to"
+    },
+    "Data Governance": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Data Governance'. The findings for sub-points were: Are training and test datasets for the AI appropriate, of high quality, and free from known biases or errors?: Yes; Are there measures in place to identify and mitigate biases or inaccuracies in the data used by the AI?: Yes. Based on these findings, classify the system's compliance with this criterion as Compl"
+    },
+    "Technical Documentation": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Technical Documentation'. The findings for sub-points were: Has comprehensive technical documentation been prepared (describing the system's purpose, design, and performance)?: Yes; Does the documentation include instructions for use and information on the AI system\u2019s limitations or risk areas?: Yes. Based on these findings, classify the system's compliance with this criterion as Compliant, Partially Compliant"
+    },
+    "Record-Keeping": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy'. The findings for sub-points were: Does the system collect personal information?: Yes; Does the system use the information collected for a purpose other than the one for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the purpose for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the purpose for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the purpose for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the purpose for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the purpose for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the purpose for which it was collected?: No; Does the system use the information for a purpose that is incompatible with the"
+    },
+    "Transparency": {
+      "status": "Partially Compliant",
+      "justification": "Answer"
+    },
+    "Human Oversight": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy Practices'. The findings for sub-points were: Is the AI system designed to allow effective privacy practices (can a human intervene or override decisions if necessary)?: Yes; Are there measures to ensure privacy practices for critical outcomes produced by the AI system?: Yes. Based on these findings, classify the system's compliance with this criterion as Compliant, Partially Compliant, or Non-Compliant"
+    },
+    "Accuracy, Robustness, Cybersecurity": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy, Security, and Data Protection'. The findings for sub-points were: Does the system have privacy controls in place to protect the privacy of the data it collects?: Yes; Does the system have security controls in place to protect the privacy of the data it"
+    },
+    "Fairness/Non-Discrimination": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Accessibility'. The findings for sub-points were: Has the AI system been evaluated for potential accessibility issues?: Yes; Are there mechanisms to mitigate or avoid accessibility issues (e.g., adjustments in training data or algorithms to address accessibility issues"
+    }
+  },
+  "MediScan AI": {
+    "Risk Management Plan": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy Practices'. The findings for sub-points were: Does the provider have a documented privacy plan for this AI, identifying and mitigating potential risks?: Yes; Is the privacy plan continuous and updated throughout the AI system's lifecycle?: Yes; Has the system been tested to identify the most appropriate privacy mitigation measures (before deployment)?"
+    },
+    "Data Governance": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Data Governance'. The findings for sub-points were: Are training and test datasets for the AI appropriate, of high quality, and free from known biases or errors?: Yes; Are there measures in place to identify and mitigate biases or inaccuracies in the data used by the AI?: Yes. Based on these findings, classify the system's compliance with this criterion as Compl"
+    },
+    "Technical Documentation": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Technical Documentation'. The findings for sub-points were: Has comprehensive technical documentation been prepared (describing the system's purpose, design, and performance)?: Yes; Does the documentation include instructions for use and information on the AI system\u2019s limitations or risk areas?: Yes. Based on these findings, classify the system's compliance with this criterion as Compliant, Partially Compliant"
+    },
+    "Record-Keeping": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Security'. The findings for sub-points were: Does the system have a security policy?: Yes; Does the system have a security plan?: Yes; Does the system have a security team?: Yes; Does the system have a security budget?: Yes; Does the system have a security budget that is sufficient to meet its security needs?: Yes; Does the system have a security team that is sufficiently trained and experienced to meet its security needs?: Yes; Does the system have a security budget that is sufficient to meet its security needs?: Yes; Does the system have a security team that is sufficiently trained and experienced to meet its security needs?: Yes; Does the system have a security budget that is sufficient to meet its security needs?: Yes; Does the system have a security team that is sufficiently trained and experienced to meet its security needs?: Yes; Does the system have a security budget that is sufficient to meet its security needs?: Yes; Does the system have a security team that"
+    },
+    "Transparency": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy'. The findings for sub-points were: Does the system collect or use personal information? (e.g., name, address, phone number, email address, etc.)?: Yes; Does the system use personal information for any purpose other than the one for which it was collected? (e.g., to send marketing or promotional materials, to provide customer service, to provide information about the system, etc.)?: Yes; Does the system use personal information for any purpose other than the one for which it was collected? (e.g., to provide information about the system, to provide information about the system's capabilities, to provide information about the system's limitations, etc.)?: Yes; Does the system use personal information for any purpose other than the one for which it was collected? (e.g., to provide information about the system, to provide information about the system's capabilities, to provide information about the system's limitations, etc.)?:"
+    },
+    "Human Oversight": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Human Oversight'. The findings for sub-points were: Is the AI system designed to allow effective human oversight (can a human intervene or override decisions if necessary)?: Yes; Are there measures to ensure human review or supervision for critical outcomes produced by the AI system?: Yes. Based on these findings, classify the system's compliance with this criterion as Compliant, Partially Compliant, or"
+    },
+    "Accuracy, Robustness, Cybersecurity": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Security Practices'. The findings for sub-points were: Does the system have a security plan to protect the data it collects?: Yes; Does the system have a security plan to protect the data it collects from unauthorized access?: Yes; Does the system have a security plan to protect the data it collects from unauthorized disclosure?: Yes; Does the system have a security plan to protect the data it collects from unauthorized modification?: Yes; Does the system have a security plan to protect the data it collects from unauthorized destruction?: Yes; Does the system have a security plan to protect the data it collects from unauthorized modification?: Yes; Does the system have a security plan to protect the data it collects from unauthorized disclosure?: Yes; Does the system have a security plan to protect the data it collects from unauthorized modification?: Yes; Does the system have a security plan to protect the data it collects from unauthorized destruction?: Yes; Does the system have a"
+    },
+    "Fairness/Non-Discrimination": {
+      "status": "Partially Compliant",
+      "justification": "The system was evaluated for 'Privacy/Security'. The findings for sub-points were: Does the system have a privacy policy?: Yes; Does the system have a security policy?: Yes; Does the system have a data security plan?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is reviewed and updated on a regular basis?: Yes; Does the system have a data security plan that is"
+    }
+  }
+}

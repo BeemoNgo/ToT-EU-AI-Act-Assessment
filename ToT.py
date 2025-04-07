@@ -11,9 +11,11 @@ def query_model(model, tokenizer, system_desc: str, prompt: str, max_new_tokens:
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     combined_input = f"System Description:\n{system_desc}\n\n{prompt}"
-    inputs = tokenizer(combined_input, return_tensors="pt").to(device)
+    inputs = tokenizer(combined_input, return_tensors="pt")
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}  
     outputs = model.generate(**inputs, max_new_tokens=max_new_tokens)
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    print(f"Querying model with prompt:\n{prompt[:100]}...")
     return response
 
 def parse_answer(response: str, answer_type: str = "yesno") -> tuple:
@@ -298,9 +300,10 @@ def visualize_compliance_tree(compliance_dict: dict, output_file: str = "complia
     except Exception as e:
         print(f"Visualization failed: {e}")
 
+import time
 def main():
     # Load the AI apps dataset
-    df = pd.read_csv("datasets/AI_apps_full_dataset (2).csv")
+    df = pd.read_csv("datasets/test.csv")[:2]
     # We will use the 'Full Description' and data columns to form the system description input.
     results = []            # to collect risk classification results for CSV
     compliance_outputs = {} # to collect compliance results for JSON/analysis
@@ -308,6 +311,7 @@ def main():
     # Iterate over each AI app entry
     for index, row in df.iterrows():
         app_name = str(row.get("App Name", f"app_{index}"))
+        print(f"\n [{index+1}/{len(df)}] Starting: {app_name}")
         # Compose system description from available fields
         description = str(row.get("Full Description", ""))
         # Optionally include data collection/sharing info to provide context on data governance/privacy
@@ -352,13 +356,12 @@ def main():
     comp_df.to_csv("compliance_results.csv", index=False)
     print("All outputs saved to risk_classification_results.csv/json and compliance_results.csv/json.")
 
-model_name = "TheBloke/Llama-2-7B-Chat-GPTQ"  # uses a quantized 7B LLaMA2
-tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-model = AutoGPTQForCausalLM.from_quantized(
+model_name = "tiiuae/falcon-rw-1b"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    device="cuda",
-    use_safetensors=True,   # Set True if using safetensors version
-    trust_remote_code=True  # Needed for some custom code inside model repo
+    device_map="auto",  
+    torch_dtype=torch.float32  
 )
 
 if __name__ == "__main__":
