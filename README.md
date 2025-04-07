@@ -47,7 +47,7 @@ huggingface-cli login
 ### 2. Run the Assessment
 
 ```bash
-python main.py
+python ToT.py
 ```
 
 ### 3. Outputs
@@ -57,31 +57,6 @@ The script generates:
 - `risk_classification_results.csv` — AI system risk level with reasoning and confidence score
 - `compliance_results.csv` — Detailed compliance map (each criterion with verdict and justification)
 - `compliance_results.json` — JSON format for structured review or downstream use
-
----
-
-## Supported Models
-
-This system supports any Hugging Face-compatible model. Recommended:
-
-- `meta-llama/Llama-2-7b-hf` (requires gated access)
-- `TheBloke/Nous-Hermes-Llama2-GPTQ` (requires GPU)
-- `tiiuae/falcon-7b-instruct` (open access)
-- `mistralai/Mistral-7B-Instruct-v0.1` (strong performance, open)
-
-> GPTQ models require GPU. For CPU testing, use unquantized or lighter models.
-
----
-
-## About Tree of Thought (ToT)
-
-ToT enhances reasoning by:
-
-- Exploring multiple branches (thoughts) per compliance or risk criterion
-- Self-evaluating and selecting the most promising reasoning paths
-- Providing full transparency into why a system was classified a certain way
-
-This mirrors how human auditors deliberate over legal compliance decisions.
 
 ---
 
