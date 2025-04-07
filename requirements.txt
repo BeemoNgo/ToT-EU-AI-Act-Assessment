@@ -1,0 +1,9 @@
+torch
+transformers
+pandas
+numpy
+networkx
+pydot
+accelerate>=0.26.0
+optinum
+auto-gptq
