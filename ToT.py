@@ -79,91 +79,47 @@ def parse_answer(response: str, answer_type: str = "yesno") -> tuple:
         # In case parsing fails, return the whole response as reasoning, with answer as empty
         return "", response.strip()
 
-def classify_risk_tot(system_desc: str, model, tokenizer) -> dict:
+def classify_risk(system_desc: str) -> dict:
     """
-    Perform staged risk classification on `system_desc` using Tree-of-Thought style prompting.
+    Perform staged risk classification on `system_desc` using traditional prompting.
     Returns a dictionary with the determined risk category, confidence score, and reasoning.
     """
     # Define risk categories and associated prompts (sub-criteria questions).
-    risk_branches = {
+    risk_keywords = {
         "Unacceptable Risk": [
-            "Question: Could this AI system be engaging in subliminal manipulation of users in a harmful way?",
-            "Question: Does the system exploit vulnerabilities of any vulnerable group (like children or the elderly) that could lead to harm?",
-            "Question: Does the AI system involve biometric categorization based on sensitive attributes (e.g., ethnicity, political views)?",
-            "Question: Is the AI system used for general-purpose social scoring of individuals (rating social behavior or characteristics)?",
-            "Question: Does the system perform real-time remote biometric identification of people in public spaces?",
-            "Question: Does the system include emotion recognition in contexts like employment or education without safety justifications?",
-            "Question: Is the system used for predictive policing or to predict criminal behavior based on personal data?",
-            "Question: Does the system involve indiscriminate scraping of facial images from the internet or CCTV footage to build a database?"
+            "subliminal", "exploit vulnerabilities", "biometric categorization",
+            "social scoring", "real-time biometric identification", "emotion recognition",
+            "predictive policing", "facial image scraping"
         ],
         "High Risk": [
-            "Question: Is the AI system a safety component of a regulated product (medical device, vehicle, etc.) or otherwise safety-critical?",
-            "Question: Is the system used in education or vocational training to determine access or evaluate students (e.g., exam scoring)?",
-            "Question: Is the system used in employment decisions or worker management (hiring algorithms, employee monitoring)?",
-            "Question: Does the AI system determine access to essential services (credit scoring, loan approval, welfare, immigration processing)?",
-            "Question: Is the system used by law enforcement or judicial authorities for profiling, evidence analysis, or predicting criminal acts?",
-            "Question: Does the system perform biometric identification (like face recognition for identification) in allowed but sensitive contexts (not real-time public surveillance)?",
-            "Question: Is the system used to manage critical infrastructure (energy grid, traffic control, etc.) where failures could harm people or the environment?",
-            "Question: Overall, would a failure or misuse of this system potentially cause significant harm to health, safety, or fundamental rights?"
+            "safety component", "medical device", "vocational training", "employment decisions",
+            "credit scoring", "immigration processing", "law enforcement", "biometric identification",
+            "critical infrastructure", "health", "safety", "fundamental rights"
         ],
         "Limited Risk": [
-            "Question: Is the AI system a chatbot or similar, interacting with humans who might not realize it's an AI (thus requiring user disclosure)?",
-            "Question: Does the system generate content (text, images, or videos) that could be mistaken for real (AI-generated media or deepfakes)?",
-            "Question: Could the system's outputs manipulate or deceive users (even if not severely), implying the need for transparency measures?",
-            "Question: Does the AI Act specifically require this type of system to provide transparency or disclosures to users (e.g., an AI that impersonates humans)?"
+            "chatbot", "deepfake", "AI-generated", "deceive", "transparency"
         ],
         "Minimal Risk": [
-            "Question: Is the AI system's use case such that it does not fall under any higher risk category (i.e., it’s a benign or routine application)?",
-            "Question: Are there no significant potential harms or impacts on fundamental rights from this system (only minimal or negligible risk)?"
+            "routine application", "no significant harm", "benign use"
         ]
     }
-    base_prompt = ("You are an AI Act compliance assessor. Rate the likelihood (1-5) that the system qualifies as the asked category. "
-                   "Only output an answer and reasoning in the format:\n"
-                   "Answer: [1-5]\nReasoning: [short justification]\n")
-    result_reasoning = []  # to accumulate reasoning text
+
+    system_lower = system_desc.lower()
+    result_reasoning = []
     assigned_category = "Minimal Risk"
-    confidence_score = 0.0
 
-    for risk_type, questions in risk_branches.items():
-        scores = []
-        # For each question in this risk category, ask the model and get a score
-        for q in questions:
-            prompt = base_prompt + q
-            response = query_model(model, tokenizer, system_desc, prompt)
-            answer, reasoning = parse_answer(response, answer_type="scale")
-            if answer:
-                try:
-                    score = int(answer)
-                except:
-                    score = 0  # if parsing failed, treat as 0 (not likely)
-            else:
-                score = 0
-            scores.append(score)
-            # Save reasoning, including which question it was for clarity
-            result_reasoning.append(f"[{risk_type}] {q.replace('Question:', '').strip()} -> {score}/5. Reason: {reasoning}")
-        # Compute average score for this risk_type
-        if len(scores) > 0:
-            avg_score = sum(scores) / len(scores)
-        else:
-            avg_score = 0
-        # If conclusive (avg > 3), assign this category and stop
-        if avg_score > 3.0:
-            assigned_category = risk_type
-            confidence_score = avg_score
-            # Truncate reasoning to only include up to this category for clarity
-            break  # stop checking lower risk levels
-    else:
-        # If loop completes with no break (no category avg > 3), assign minimal risk as default
-        assigned_category = "Minimal Risk"
-        confidence_score = sum(scores)/len(scores) if scores else 0.0  # last computed scores for minimal risk
+    for category in ["Unacceptable Risk", "High Risk", "Limited Risk", "Minimal Risk"]:
+        keywords = risk_keywords[category]
+        hits = [kw for kw in keywords if kw in system_lower]
+        if hits:
+            assigned_category = category
+            result_reasoning.append(f"Matched keywords for {category}: {', '.join(hits)}")
+            break  # assign the first matched (highest severity)
 
-    # Compile reasoning text
-    reasoning_text = ("; ".join(result_reasoning) if result_reasoning 
-                      else "No risk indicators were strongly identified.")
     return {
         "risk_category": assigned_category,
-        "confidence_score": round(confidence_score, 2),
-        "reasoning": reasoning_text
+        "confidence_score": 5.0 if assigned_category != "Minimal Risk" else 2.0,
+        "reasoning": "; ".join(result_reasoning) or "No high-risk keywords matched. Assigned minimal risk."
     }
 
 def assess_compliance_tot(system_desc: str, model, tokenizer) -> dict:
@@ -238,8 +194,7 @@ def assess_compliance_tot(system_desc: str, model, tokenizer) -> dict:
             status = "Non-Compliant"
         else:
             status = "Partially Compliant"
-        # Generate a justification by summarizing sub-results using the model (Tree of Thought synthesis)
-        # We will prompt the model to summarize why we chose this status, based on sub-answers.
+    
         findings = "; ".join([f"{q}: {ans}" for (ans, _), q in zip(sub_answers, questions)])
         summary_prompt = (f"The system was evaluated for '{criterion}'. The findings for sub-points were: {findings}. "
                            "Based on these findings, classify the system's compliance with this criterion as Compliant, Partially Compliant, or Non-Compliant and explain why.\n"
@@ -256,7 +211,6 @@ def assess_compliance_tot(system_desc: str, model, tokenizer) -> dict:
         }
     return compliance_results
 
-# Bonus: Optional visualization function
 try:
     import networkx as nx
     from networkx.drawing.nx_pydot import to_pydot
@@ -275,16 +229,12 @@ def visualize_compliance_tree(compliance_dict: dict, output_file: str = "complia
     G = nx.DiGraph()
     root = "AI System Compliance"
     G.add_node(root)
-    # Add each criterion and its status as a node, link from root
     for crit, result in compliance_dict.items():
         status = result.get("status", "")
         crit_node = f"{crit} ({status})"
         G.add_node(crit_node)
         G.add_edge(root, crit_node)
-        # parse the justification to guess some sub aspects for illustration.
         justification = result.get("justification", "")
-        # Create dummy sub-nodes from justification (e.g., mention of what is present or missing)
-        # For simplicity, split by ';' or '.'
         sub_points = [s.strip() for s in justification.split(';') if s.strip()]
         # Limit to a few sub-points to keep the graph readable
         for sub in sub_points[:3]:
@@ -302,13 +252,11 @@ def visualize_compliance_tree(compliance_dict: dict, output_file: str = "complia
 
 import time
 def main():
-    # Load the AI apps dataset
     df = pd.read_csv("datasets/test.csv")[:2]
     # We will use the 'Full Description' and data columns to form the system description input.
     results = []            # to collect risk classification results for CSV
     compliance_outputs = {} # to collect compliance results for JSON/analysis
 
-    # Iterate over each AI app entry
     for index, row in df.iterrows():
         app_name = str(row.get("App Name", f"app_{index}"))
         print(f"\n [{index+1}/{len(df)}] Starting: {app_name}")
@@ -327,7 +275,7 @@ def main():
             if security:
                 description += f"Security Practices: {security}\n"
         
-        risk_result = classify_risk_tot(description, model, tokenizer)
+        risk_result = classify_risk(description)
         risk_result["App Name"] = app_name
         results.append(risk_result)
         
@@ -342,7 +290,6 @@ def main():
     
     with open("compliance_results.json", "w") as fjson:
         json.dump(compliance_outputs, fjson, indent=2)
-    # Additionally, save compliance results to a CSV (each row per criterion per app for easier reading)
     comp_rows = []
     for app, criteria in compliance_outputs.items():
         for crit, outcome in criteria.items():
