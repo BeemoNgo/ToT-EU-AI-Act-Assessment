@@ -79,12 +79,17 @@ def parse_answer(response: str, answer_type: str = "yesno") -> tuple:
         # In case parsing fails, return the whole response as reasoning, with answer as empty
         return "", response.strip()
 
-def classify_risk(system_desc: str) -> dict:
+def classify_risk(system_desc: str, model=None, tokenizer=None) -> dict:
     """
-    Perform staged risk classification on `system_desc` using traditional prompting.
-    Returns a dictionary with the determined risk category, confidence score, and reasoning.
+    Classify the AI system's risk using both heuristics and model inference.
+    Returns:
+        - risk_category: Final assigned category
+        - model_predicted: What the LLM said
+        - heuristic_result: What the keyword-matching suggested
+        - confidence_score: Scaled 1–5
+        - reasoning: Detailed reasoning from both sources
+        - final_inference: Concise, human-readable summary of the classification
     """
-    # Define risk categories and associated prompts (sub-criteria questions).
     risk_keywords = {
         "Unacceptable Risk": [
             "subliminal", "exploit vulnerabilities", "biometric categorization",
@@ -104,22 +109,53 @@ def classify_risk(system_desc: str) -> dict:
         ]
     }
 
+    # === Heuristic Matching ===
     system_lower = system_desc.lower()
-    result_reasoning = []
-    assigned_category = "Minimal Risk"
-
+    heuristic_result = "Minimal Risk"
+    reasoning = []
     for category in ["Unacceptable Risk", "High Risk", "Limited Risk", "Minimal Risk"]:
-        keywords = risk_keywords[category]
-        hits = [kw for kw in keywords if kw in system_lower]
-        if hits:
-            assigned_category = category
-            result_reasoning.append(f"Matched keywords for {category}: {', '.join(hits)}")
-            break  # assign the first matched (highest severity)
+        matched = [kw for kw in risk_keywords[category] if kw in system_lower]
+        if matched:
+            heuristic_result = category
+            reasoning.append(f"Matched keywords for {category}: {', '.join(matched)}")
+            break
+    heuristic_conf = 5.0 if heuristic_result != "Minimal Risk" else 2.0
+
+    # === LLM-based Classification ===
+    model_pred = ""
+    model_reasoning = ""
+    if model and tokenizer:
+        prompt = (
+            "You are an expert in the EU AI Act. Based on the description below, classify the AI system risk into one of:\n"
+            "- Unacceptable Risk\n- High Risk\n- Limited Risk\n- Minimal Risk\n\n"
+            "System Description:\n" + system_desc +
+            "\n\nAnswer in this format:\nAnswer: [Risk Category]\nReasoning: [brief explanation]"
+        )
+        response = query_model(model, tokenizer, "", prompt)
+        model_pred, model_reasoning = parse_answer(response, answer_type="compliance")
+        if model_pred not in ["Unacceptable Risk", "High Risk", "Limited Risk", "Minimal Risk"]:
+            model_pred = ""
+
+    # === Final Decision and Inference ===
+    final_category = model_pred if model_pred else heuristic_result
+    final_reasoning = f"LLM prediction: {model_pred or 'N/A'}; Reasoning: {model_reasoning or 'N/A'}\nHeuristic: {heuristic_result}; {reasoning[0] if reasoning else 'No keyword matches'}"
+    
+    # Concise natural-language inference
+    final_inference = f"The system is classified as **{final_category}** risk based on " + (
+        "language model judgment." if model_pred else "keyword analysis due to lack of model prediction."
+    )
+    if model_pred and model_pred != heuristic_result:
+        final_inference += f" (Note: LLM and heuristics disagreed – heuristic suggested {heuristic_result}.)"
+    elif model_pred and model_pred == heuristic_result:
+        final_inference += " (LLM and heuristic analysis are in agreement.)"
 
     return {
-        "risk_category": assigned_category,
-        "confidence_score": 5.0 if assigned_category != "Minimal Risk" else 2.0,
-        "reasoning": "; ".join(result_reasoning) or "No high-risk keywords matched. Assigned minimal risk."
+        "risk_category": final_category,
+        "model_predicted": model_pred,
+        "heuristic_result": heuristic_result,
+        "confidence_score": 5.0 if final_category in ["Unacceptable Risk", "High Risk"] else 3.0,
+        "reasoning": final_reasoning,
+        "final_inference": final_inference
     }
 
 def assess_compliance_tot(system_desc: str, model, tokenizer) -> dict:
@@ -252,7 +288,7 @@ def visualize_compliance_tree(compliance_dict: dict, output_file: str = "complia
 
 import time
 def main():
-    df = pd.read_csv("datasets/test.csv")[:2]
+    df = pd.read_csv("datasets/test.csv")
     # We will use the 'Full Description' and data columns to form the system description input.
     results = []            # to collect risk classification results for CSV
     compliance_outputs = {} # to collect compliance results for JSON/analysis
