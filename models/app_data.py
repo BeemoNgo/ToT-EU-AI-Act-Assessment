@@ -41,6 +41,7 @@ class AnalysisResults:
     filtered_reviews_sample: Optional[pd.DataFrame] = None
     error: str = ""
     eu_ai_act_classification: Optional[Dict[str, Any]] = None
+    tot_trace_review: Optional[Dict[str, Any]] = None
     
     def has_error(self) -> bool:
         """Check if there's an error in the results."""

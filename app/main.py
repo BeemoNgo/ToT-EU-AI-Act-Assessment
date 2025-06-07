@@ -11,7 +11,7 @@ from models.app_data import AppDetails, AnalysisResults
 from services.analysis import AnalysisService
 from services.playstore import PlayStoreService
 from services.logger import StatusLogger
-from ui.analysis import display_analysis_results, display_app_details_table, display_footer
+from ui.analysis import display_analysis_results, display_app_details_table, display_footer, display_tree_of_thought_trace
 from ui.input import render_api_key_input
 from ui.search import search_input, debounced_search, display_app_list
 
@@ -121,7 +121,6 @@ def main():
             st.error(f"An error occurred: {str(e)}")
             with st.expander("Error Details", expanded=False):
                 st.code(traceback_details)
-    
     # Display footer
     display_footer()
 

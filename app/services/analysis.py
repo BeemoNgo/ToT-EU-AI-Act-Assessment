@@ -75,7 +75,10 @@ class AnalysisService:
             messages=[{"role": "user", "content": synthesis_prompt}],
             temperature=0.1
         )
-        return final_response.choices[0].message.content.strip()
+        return {
+            "branches": branches,
+            "final_response": final_response.choices[0].message.content.strip()
+        }
 
     def analyze_reviews(self, app_name: str, app_id: str, reviews_text: str, 
                        status_logger: Optional[StatusLogger] = None) -> str:
@@ -104,10 +107,22 @@ class AnalysisService:
         log.info(f"Generating multi-path review analysis for {app_name}")
 
         try:
-            analysis = self.run_tree_of_thought(prompt_root, thought_prompts)
-            self.cache_service.cache_analysis(app_id, "reviews", analysis)
-            log.write(f"✓ Completed review analysis for {app_name}.")
-            return analysis
+            analysis_result = self.run_tree_of_thought(prompt_root, thought_prompts)
+
+            # Cache the final synthesized answer (as a string)
+            self.cache_service.cache_analysis(app_id, "difference", analysis_result["final_response"])
+
+            # Optional: store the ToT trace (only if you want it later)
+            if hasattr(self, "active_results"):
+                self.active_results.tot_trace_difference = {
+                    "prompt_root": prompt_root,
+                    "thought_prompts": thought_prompts,
+                    "branches": analysis_result["branches"],
+                    "final_response": analysis_result["final_response"]
+                }
+
+            log.write(f"✓ Completed difference analysis for {app_name}.")
+            return analysis_result["final_response"]
 
         except Exception as e:
             log.error(f"ToT review analysis failed for {app_name}: {e}", exc_info=True)
@@ -155,75 +170,63 @@ class AnalysisService:
             return f"Error analyzing differences: {str(e)}"
     
     def analyze_app(self, app_details: AppDetails, reviews_df: pd.DataFrame, 
-                   status_logger: Optional[StatusLogger] = None) -> AnalysisResults:
+                status_logger: Optional[StatusLogger] = None) -> AnalysisResults:
         log = status_logger or logger
-        
+
         # Initialize results object
         results = AnalysisResults(developer_details=app_details)
-        
+
         # Check if we have reviews
         if reviews_df.empty:
             log.warning(f"No reviews found for {app_details.name}.")
             results.error = "No reviews found."
             return results
-        
+
         # Store raw review count
         results.raw_review_count = len(reviews_df)
         log.write(f"Raw reviews fetched: {results.raw_review_count}")
-        
+
         # Try to get filtered reviews from cache
         filtered_df = self.cache_service.get_cached_dataframe(app_details.app_id, "filtered_reviews")
         if filtered_df is not None:
             log.info(f"Using cached filtered reviews for {app_details.name}")
             results.filtered_review_count = len(filtered_df)
-            results.filtered_reviews = filtered_df  # Store complete filtered DataFrame
-            results.filtered_reviews_sample = filtered_df.head()  # Store sample for display
-            log.write(f"✓ Using cached filtered reviews: {results.filtered_review_count} reviews.")
+            results.filtered_reviews = filtered_df
+            results.filtered_reviews_sample = filtered_df.head()
+            log.write(f"Using cached filtered reviews: {results.filtered_review_count} reviews.")
         else:
             # Filter reviews
             log.update(label=f"Filtering reviews for {app_details.name}...")
-            # Make sure we have review_index column
             if 'review_index' not in reviews_df.columns:
                 reviews_df['review_index'] = range(1, len(reviews_df) + 1)
-            
+
             filtered_df = filter_reviews_by_length(reviews_df)
             results.filtered_review_count = len(filtered_df)
-            results.filtered_reviews = filtered_df  # Store complete filtered DataFrame
-            results.filtered_reviews_sample = filtered_df.head()  # Store sample for display
-            
-            # Cache the filtered reviews
+            results.filtered_reviews = filtered_df
+            results.filtered_reviews_sample = filtered_df.head()
+
             self.cache_service.cache_dataframe(app_details.app_id, "filtered_reviews", filtered_df)
-            log.write(f"✓ Filtered reviews: {results.filtered_review_count} remaining (with sufficient length).")
-        
-        # Check if we have filtered reviews
+            log.write(f"Filtered reviews: {results.filtered_review_count} remaining (with sufficient length).")
+
         if filtered_df.empty:
             log.warning(f"No reviews met the minimum length requirement for {app_details.name}.")
             results.error = "No sufficiently long reviews found for analysis."
             return results
-        
-        # Prepare text for analysis
+
         reviews_text = prepare_reviews_for_analysis(filtered_df)
-        
-        # Analyze reviews
+
+        self.active_results = results  # Inject results so ToT trace can be stored
+
         results.user_review_analysis = self.analyze_reviews(
             app_details.name, app_details.app_id, reviews_text, status_logger=log
         )
-        
-        # Check if review analysis succeeded
-        if results.user_review_analysis.startswith("Error analyzing reviews:"):
-            results.error = results.user_review_analysis
-            return results
-        
-        # Analyze difference
+
         results.difference_analysis = self.analyze_difference(
             app_details, results.user_review_analysis, status_logger=log
         )
-        
-        # Check if difference analysis succeeded
-        if results.difference_analysis.startswith("Error analyzing differences:"):
-            results.error = results.difference_analysis
-            return results
-        
+
+        self.active_results = None  # Clean up injection
+
         return results
     
     def _evaluate_single_prompt(self, question_text: str, input_description: str, log: StatusLogger) -> Optional[EvaluationResult]:
@@ -243,15 +246,16 @@ class AnalysisService:
                 "Step 4: Final judgment: Answer Yes or No, explain reasoning, and summarize supporting evidence."
             ]
 
-            final_response = self.run_tree_of_thought(prompt_root, thought_prompts)
+            tot_result = self.run_tree_of_thought(prompt_root, thought_prompts)
+            final_response = tot_result["final_response"]
 
             # Parse answer and evidence (rudimentary but traceable)
             answer = "Yes" if "Answer: Yes" in final_response else "No"
             return EvaluationResult(
                 question=question_text,
                 reasoning=final_response,
-                supporting_reviews=final_response if answer == "Yes" else None,
-                confidence=1.0 if answer == "Yes" else 0.5
+                supporting_reviews=final_response if "Answer: Yes" in final_response else None,
+                confidence=1.0 if "Answer: Yes" in final_response else 0.5
             )
 
         except Exception as e:
@@ -286,9 +290,10 @@ class AnalysisService:
         input_description = base_description
         if reviews_analysis and not reviews_analysis.startswith("Error"):
             input_description += f"\n\nUser Review Analysis Summary:\n---\n{reviews_analysis}\n---"
-        if difference_analysis and not difference_analysis.startswith("Error"):
+        if isinstance(difference_analysis, str) and not difference_analysis.startswith("Error"):
             input_description += f"\n\nAnalysis of Differences (User Reviews vs. Developer Claims):\n---\n{difference_analysis}\n---"
-        
+        else:
+            log.warning("Difference analysis is not a valid string or contains an error.")
         # Process risk types from highest to lowest risk
         risk_types = ["Unacceptable risk", "High risk", "Limited risk"]
         
